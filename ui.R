@@ -28,8 +28,8 @@ ui <- fluidPage(theme = "hypergate.css",
 			fluidRow(actionButton("runHypergate","Run Hypergate")),
 			fluidRow(
 				column(5,
-					fluidRow(plotOutput("plotPreView",height="620px")),
-					fluidRow(uiOutput("optiButton"))
+					fluidRow(plotOutput("plotPreView",height="620px"))
+					# fluidRow(uiOutput("optiButton"))
 				),
 				column(7,
 					fluidRow(tableOutput("tableOutput")),
