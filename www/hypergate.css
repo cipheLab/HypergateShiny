@@ -1,0 +1,24 @@
+
+div#gatingStrat {
+	width:600px;
+}
+
+div#gatingStrat div{
+	float:left;
+}
+
+div#gatingStrat div img{
+	border: 1px solid gray;
+}
+
+h2 {
+	color:blue;
+}
+
+div#tableOutput {
+	width: 400px;
+}
+
+div#tableOutput table {
+		border:1px solid gray;
+}
