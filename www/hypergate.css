@@ -19,6 +19,10 @@ div#tableOutput {
 	width: 400px;
 }
 
+div#barPlot{
+	width:400px;
+}
+
 div#tableOutput table {
 		border:1px solid gray;
 }
