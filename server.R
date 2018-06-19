@@ -362,7 +362,7 @@ server <- function(input, output, session) {
 			ylab = "",#names(listObject$params)[which(listObject$param%in%channels)],
 	    xlab = "F1-score deterioration when the parameter is ignored")
 	    for(i in 1:length(contributions)){
-	    	text(max(contributions)*0.9,(i*(1-(0.09*(1/i)))),channels[i],cex=1.25)
+	    	text(max(contributions)*0.8,(((length(contributions)+1)-i)-(0.09*(1/i))),channels[i],cex=1.25)
 	    }
 		},height=100*length(hg_output$active_channels))
 		progress$close()
