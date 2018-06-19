@@ -186,7 +186,7 @@ server <- function(input, output, session) {
 			col=ifelse(listObject$flow.frame@exprs[,input$id]==input$idValue,"red","blue")
 		)
 		progress$close()
-	},width=500, height=500)
+	},width=400, height=400)
 
 	observeEvent(input$runHypergate,{
 		if(is.null(input$idValue) || is.null(input$markers)) return(NULL)
@@ -197,7 +197,7 @@ server <- function(input, output, session) {
 		gate_vector <-  rep(0, dim(listObject$flow.frame)[1])
 		gate_vector[which(listObject$flow.frame@exprs[,input$id]==input$idValue)] <- 1
 
-		hg_output <- hypergate.stepwise.fullcycles(
+		hg_output <- hypergate(
 			xp = listObject$flow.frame@exprs[, input$markers],
 			gate_vector = gate_vector, 
     	level = 1, verbose = FALSE
@@ -214,14 +214,16 @@ server <- function(input, output, session) {
 
   	output$gatingStrat <- renderUI({
   		l <- length(hg_output$active_channels)
-  		progress$set(message=l)
-  		iter<-0
+  		# progress$set(message=l)
+  		
   		channels<-hg_output$active_channels
     	channels<-sub("_max","",channels)
     	channels<-sub("_min","",channels)
     	ranges.global<-apply(listObject$flow.frame@exprs[,channels,drop=F],2,range)
     	rownames(ranges.global)=c("min","max")
+    	
     	active_events<-rep(T,nrow(listObject$flow.frame@exprs))
+    	
     	highlight <- "red"
     	cols<-rep("black",nrow(listObject$flow.frame@exprs))
     	cols[gate_vector==1]=highlight
@@ -233,27 +235,59 @@ server <- function(input, output, session) {
 	    parameters<-parameters[,order(parameters_order,decreasing=FALSE),drop=FALSE]
 	    parameters<-setNames(parameters[nrow(parameters),,drop=TRUE],colnames(parameters))
 
-	    channels<-sub("_max","",names(parameters))
-    	channels<-sub("_min","",channels)
+    	channels <-sub("_max","",names(parameters))
+    	channels <- sub("_min","",channels)
+
+    	plotOutputObject <- list()
+    	# active_events<-rep(T,nrow(listObject$flow.frame@exprs))
+    	n<-length(parameters)
+			iter<-0
 
     	direction <- rep(2,length(parameters))
     	direction[grep("_max",names(parameters))]=1
 
-    	plotOutputObject <- list()
+  		# for(i in seq(1,n,by=2)){
+  		plotOutputObject <- lapply(c(seq(1,n,by=2)), function(i) {
 
-    	print(channels)
-
-    	plotOutputObject <- lapply(seq(1,length(parameters),by=2), function(i){
-  		# for(i in seq(1,length(parameters),by=2)){
-
-  			if((i+1)<=length(parameters)){
+  			tmp <- active_events
+  	
+  			if((i+1)<=n){
+  				iter<<-iter+1
   				chan1<-channels[i]
           chan2<-channels[i+1]
-          iter<-iter+1
-          print(i)
 
-          tmp <- active_events
+          plotname <- paste("plotGate",iter,sep="")
+          plot_output_object <- plotOutput(plotname)
+  				plot_output_object <- renderPlot({
 
+  					plot(
+  						listObject$flow.frame@exprs[which(tmp==TRUE),chan1],
+  						listObject$flow.frame@exprs[which(tmp==TRUE),chan2],
+  						xlab=names(listObject$params)[grep(chan1,listObject$params)],
+              ylab=names(listObject$params)[grep(chan2,listObject$params)],
+              xlim=ranges.global[,chan1],
+              ylim=ranges.global[,chan2],
+              bty="l",
+              pch=20,
+              cex=0.1,
+              col=cols[tmp],
+              main=""
+  					)
+  					segments(
+                x0=parameters[i],
+                y0=parameters[i+1],
+                x1=ranges.global[direction[i],chan1],
+                col="red"
+            )
+            segments(
+                x0=parameters[i],
+                y0=parameters[i+1],
+                y1=ranges.global[direction[i+1],chan2],
+                col="red"
+            )
+          }, outputArgs = list(width="250px", height ="250px"))
+
+          ## Updating active_events
           if(direction[i]==2){
 	          test1<-listObject$flow.frame@exprs[,chan1]>=parameters[i] ##If _min, events above parameter are selected
 	        } else {
@@ -266,39 +300,31 @@ server <- function(input, output, session) {
 	        }
 	        active_events<<-active_events&test1&test2
 
-	        return(renderPlot({
-  					plot(
-  						listObject$flow.frame@exprs[tmp,chan1],
-  						listObject$flow.frame@exprs[tmp,chan2],
-  						xlab=names(listObject$params)[grep(chan1,listObject$params)],
-              ylab=names(listObject$params)[grep(chan2,listObject$params)],
-              xlim=ranges.global[,chan1],
-              ylim=ranges.global[,chan2],
-              bty="l",
-              pch=20,
-              cex=0.1,
-              col=cols[tmp],
-              main=NULL
-  					)
-          }, outputArgs = list(width="250px", height ="250px")))
+	        return(plot_output_object)
   			}
-  		})
+  			
+  		#}
 
 			if(length(parameters)%%2==1){ 
-				i <- length(parameters)
-		    chan1<-channels[i]
-	      # iter<-iter+1
 
-	      if(direction[i]==2){
+		    chan1<-channels[i]
+	      iter<<-iter+1
+
+	      if(direction[iter]==2){
 		      test1=listObject$flow.frame@exprs[,chan1]>=parameters[i] ##If _min, events above parameter are selected
 		    } else {
 		      test1=listObject$flow.frame@exprs[,chan1]<=parameters[i] ##Else events above parameter below
 		    }
 		    active_events<<-active_events&test1
 		       
-		    plotOutputObject[[length(plotOutputObject)+1]] <- renderPlot({
-			    plot(listObject$flow.frame@exprs[active_events,chan1],main="",
-			      ylab=channels[i],
+		    	# print(iter)
+       #    print(paste0(chan1," - "))
+
+		     	plotname <- paste("plotGate",iter,sep="")
+          plot_output_object <- plotOutput(plotname)
+  				plot_output_object <- renderPlot({
+			    plot(listObject$flow.frame@exprs[which(active_events==TRUE),chan1],main="",
+			      ylab=names(listObject$params)[grep(chan1,listObject$params)],
 			      xlab="Events index",
 			      ylim=ranges.global[,chan1],
 			      bty="l",
@@ -306,8 +332,13 @@ server <- function(input, output, session) {
 			      cex=0.1,
 			      col=cols[active_events]
 			    )
-			  }, outputArgs = list(width="250px", height ="250px"))
+			  	}, outputArgs = list(width="250px", height ="250px"))
+
+		    #plotOutputObject[[length(plotOutputObject)+1]] <- plot_output_object
+		    return(plot_output_object)
 		  }
+
+		 })
 
   		do.call(tagList, plotOutputObject)
   		return(plotOutputObject)
@@ -322,21 +353,26 @@ server <- function(input, output, session) {
 		listObject$contributions <- contributions
 
     output$barPlot <- renderPlot({
-    	channels<-hg_output$active_channels
+    	channels<-names(contributions)
     	channels<-sub("_max","",channels)
     	channels<-sub("_min","",channels)
-			barplot(contributions, las = 3, mar = c(10, 4, 1, 1), horiz = TRUE,
-			ylab = names(listObject$params)[which(listObject$param%in%channels)],
+    	channels <- names(listObject$params)[which(listObject$params%in%channels)]
+    	#colnames(contributions) <- channels
+			barplot(contributions,horiz = TRUE,axisnames=F, las=1, space=0,
+			ylab = "",#names(listObject$params)[which(listObject$param%in%channels)],
 	    xlab = "F1-score deterioration when the parameter is ignored")
-		},height=170*length(hg_output$active_channels))
+	    for(i in 1:length(contributions)){
+	    	text(max(contributions)*0.9,(i*(1-(0.09*(1/i)))),channels[i],cex=1.25)
+	    }
+		},height=100*length(hg_output$active_channels))
 		progress$close()
 
-		if(!is.null(dim(hg_output$pars.history[,hg_output$active_channels]))){
-			output$optiButton <- renderUI({
-				actionButton("opti","Reoptimize")
-			})
-		}
-	})
+		# if(!is.null(dim(hg_output$pars.history[,hg_output$active_channels]))){
+		# 	output$optiButton <- renderUI({
+		# 		actionButton("opti","Reoptimize")
+		# 	})
+		# }
+	# })
 
 	# observeEvent(input$opti,{
 	# 	hg_output <- listObject$hg_output
@@ -351,7 +387,7 @@ server <- function(input, output, session) {
 
 	# 	output$gatingStrat <- renderUI({
  #  		l <- length(hg_output$active_channels)
- #  		progress$set(message=l)
+ #  		# progress$set(message=l)
  #  		iter<-0
  #  		iter<-iter+1
  #  		channels<-hg_output$active_channels
@@ -390,6 +426,8 @@ server <- function(input, output, session) {
  #  		do.call(tagList, plotOutputObject)
  #  		return(plotOutputObject)
  #  	})
-	# })
+
+
+	})
 
 }
