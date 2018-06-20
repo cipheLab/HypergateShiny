@@ -352,17 +352,15 @@ server <- function(input, output, session) {
 
 		listObject$contributions <- contributions
 
-    output$barPlot <- renderPlot({
-    	channels<-names(contributions)
-    	channels<-sub("_max","",channels)
-    	channels<-sub("_min","",channels)
-    	channels <- names(listObject$params)[which(listObject$params%in%channels)]
-    	#colnames(contributions) <- channels
-			barplot(contributions,horiz = TRUE,axisnames=F, las=1, space=0,
-			ylab = "",#names(listObject$params)[which(listObject$param%in%channels)],
+       output$barPlot <- renderPlot({
+    	channels <- names(contributions) 
+    	channels <- sub("_max","",channels)
+    	channels <- sub("_min","",channels)
+			barplot(contributions,horiz = TRUE,axisnames=F, las=3, space=0,
+			ylab = "",
 	    xlab = "F1-score deterioration when the parameter is ignored")
 	    for(i in 1:length(contributions)){
-	    	text(max(contributions)*0.8,(((length(contributions)+1)-i)-(0.09*(1/i))),channels[i],cex=1.25)
+	    	text(max(contributions[i])*0.75,(i-(0.1*(1/i))),names(listObject$params)[which(listObject$params==channels[i])],cex=1.25)
 	    }
 		},height=100*length(hg_output$active_channels))
 		progress$close()
