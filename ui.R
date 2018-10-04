@@ -30,8 +30,8 @@ ui <- fluidPage(theme = "hypergate.css",
 				column(5,
 					fluidRow(plotOutput("plotPreView",height="400px")),
 					fluidRow(tableOutput("tableOutput")),
-					fluidRow(uiOutput("gatingStrat"))
-					#fluidRow(uiOutput("optiButton"))
+					fluidRow(uiOutput("gatingStrat")),
+					fluidRow(uiOutput("optiButton"))
 				),
 				column(7,
 					fluidRow(plotOutput("barPlot",height="100%"))

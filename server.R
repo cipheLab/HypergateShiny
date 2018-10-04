@@ -214,7 +214,6 @@ server <- function(input, output, session) {
 
   	output$gatingStrat <- renderUI({
   		l <- length(hg_output$active_channels)
-  		# progress$set(message=l)
   		
   		channels<-hg_output$active_channels
     	channels<-sub("_max","",channels)
@@ -239,14 +238,13 @@ server <- function(input, output, session) {
     	channels <- sub("_min","",channels)
 
     	plotOutputObject <- list()
-    	# active_events<-rep(T,nrow(listObject$flow.frame@exprs))
+
     	n<-length(parameters)
 			iter<-0
 
     	direction <- rep(2,length(parameters))
     	direction[grep("_max",names(parameters))]=1
 
-  		# for(i in seq(1,n,by=2)){
   		plotOutputObject <- lapply(c(seq(1,n,by=2)), function(i) {
 
   			tmp <- active_events
@@ -302,8 +300,6 @@ server <- function(input, output, session) {
 
 	        return(plot_output_object)
   			}
-  			
-  		#}
 
 			if(length(parameters)%%2==1){ 
 
@@ -316,9 +312,6 @@ server <- function(input, output, session) {
 		      test1=listObject$flow.frame@exprs[,chan1]<=parameters[i] ##Else events above parameter below
 		    }
 		    active_events<<-active_events&test1
-		       
-		    	# print(iter)
-       #    print(paste0(chan1," - "))
 
 		     	plotname <- paste("plotGate",iter,sep="")
           plot_output_object <- plotOutput(plotname)
@@ -333,8 +326,6 @@ server <- function(input, output, session) {
 			      col=cols[active_events]
 			    )
 			  	}, outputArgs = list(width="250px", height ="250px"))
-
-		    #plotOutputObject[[length(plotOutputObject)+1]] <- plot_output_object
 		    return(plot_output_object)
 		  }
 
@@ -360,72 +351,68 @@ server <- function(input, output, session) {
 			ylab = "",
 	    xlab = "F1-score deterioration when the parameter is ignored")
 	    for(i in 1:length(contributions)){
-	    	text(max(contributions[i])*0.75,(i-(0.1*(1/i))),names(listObject$params)[which(listObject$params==channels[i])],cex=1.25)
+	    	text(max(contributions)*0.8,(i-(0.1*(1/i))),names(listObject$params)[which(listObject$params==channels[i])],cex=1.25)
 	    }
 		},height=100*length(hg_output$active_channels))
 		progress$close()
 
-		# if(!is.null(dim(hg_output$pars.history[,hg_output$active_channels]))){
-		# 	output$optiButton <- renderUI({
-		# 		actionButton("opti","Reoptimize")
-		# 	})
-		# }
-	# })
+		if(!is.null(dim(hg_output$pars.history[,hg_output$active_channels]))){
+			output$optiButton <- renderUI({
+				actionButton("opti","Reoptimize")
+			})
+		}
+	})
 
-	# observeEvent(input$opti,{
-	# 	hg_output <- listObject$hg_output
-	# 	contributions <- listObject$contributions
-	# 	gate_vector <-  rep(0, dim(listObject$flow.frame)[1])
-	# 	gate_vector[which(listObject$flow.frame@exprs[,input$id]==input$idValue)] <- 1
+	observeEvent(input$opti,{
+		hg_output <- listObject$hg_output
+		contributions <- listObject$contributions
+		gate_vector <- rep(0, dim(listObject$flow.frame)[1])
+		gate_vector[which(listObject$flow.frame@exprs[,input$id]==input$idValue)] <- 1
 
-	# 	 hg_output <- reoptimize_strategy(gate = hg_output, 
- #          channels_subset = names(contributions)[order(contributions, decreasing = TRUE)[c(1,2)]], 
- #          xp = listObject$flow.frame@exprs[,input$markers],
- #          gate_vector = gate_vector, level = 1)
+		 hg_output <- reoptimize_strategy(gate = hg_output, 
+          channels_subset = names(contributions)[c(1,2)], 
+          xp = listObject$flow.frame@exprs[,input$markers],
+          gate_vector = gate_vector, level = 1)
 
-	# 	output$gatingStrat <- renderUI({
- #  		l <- length(hg_output$active_channels)
- #  		# progress$set(message=l)
- #  		iter<-0
- #  		iter<-iter+1
- #  		channels<-hg_output$active_channels
- #    	channels<-sub("_max","",channels)
- #    	channels<-sub("_min","",channels)
- #    	ranges.global<-apply(listObject$flow.frame@exprs[,channels,drop=F],2,range)
- #    	rownames(ranges.global)=c("min","max")
- #    	active_events<-rep(T,nrow(listObject$flow.frame@exprs))
- #    	highlight <- "red"
- #    	cols<-rep("black",nrow(listObject$flow.frame@exprs))
- #    	cols[gate_vector==1]=highlight
+		output$gatingStrat <- renderUI({
+  		l <- length(hg_output$active_channels)
+  		iter<-0
+  		channels<-hg_output$active_channels
+    	channels<-sub("_max","",channels)
+    	channels<-sub("_min","",channels)
+    	ranges.global<-apply(listObject$flow.frame@exprs[,channels,drop=F],2,range)
+    	rownames(ranges.global)=c("min","max")
+    	active_events<-rep(T,nrow(listObject$flow.frame@exprs))
+    	highlight <- "red"
+    	cols<-rep("black",nrow(listObject$flow.frame@exprs))
+    	cols[gate_vector==1]=highlight
 
- #  		plotOutputObject <- lapply(c(1:l), function(i){
+  		plotOutputObject <- lapply(c(1:l), function(i){
 
- #  			if((i+1)<=l){
- #  				chan1<-channels[i]
- #          chan2<-channels[i+1]
- #          iter<-iter+1
+  			if((i+1)<=l){
+  				chan1<-channels[i]
+          chan2<-channels[i+1]
+          iter<-iter+1
 
- #  				renderPlot({
- #  					plot(
- #  						listObject$flow.frame@exprs[active_events,chan1],
- #  						listObject$flow.frame@exprs[active_events,chan2],
- #  						xlab=names(listObject$params)[grep(chan1,listObject$params)],
- #              ylab=names(listObject$params)[grep(chan2,listObject$params)],
- #              xlim=ranges.global[,chan1],
- #              ylim=ranges.global[,chan2],
- #              bty="l",
- #              pch=20,
- #              cex=0.1,
- #              col=cols[active_events]
- #  					)
- #          }, outputArgs = list(width="250px", height ="250px"))
- #  			}
- #  		})
- #  		do.call(tagList, plotOutputObject)
- #  		return(plotOutputObject)
- #  	})
-
-
+  				renderPlot({
+  					plot(
+  						listObject$flow.frame@exprs[active_events,chan1],
+  						listObject$flow.frame@exprs[active_events,chan2],
+  						xlab=names(listObject$params)[grep(chan1,listObject$params)],
+              ylab=names(listObject$params)[grep(chan2,listObject$params)],
+              xlim=ranges.global[,chan1],
+              ylim=ranges.global[,chan2],
+              bty="l",
+              pch=20,
+              cex=0.1,
+              col=cols[active_events]
+  					)
+          }, outputArgs = list(width="250px", height ="250px"))
+  			}
+  		})
+  		do.call(tagList, plotOutputObject)
+  		return(plotOutputObject)
+  	})
 	})
 
 }
